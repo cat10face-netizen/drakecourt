@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор определений | Суд Штата Дрейк</title>
+    <style>
+        :root {
+            --bg: #1a1a1a; --panel: #242424; --border: #3a3a3a; --text: #d4d4d4;
+            --gold: #b8963e; --red: #8b1a1a; --red-bright: #c0392b; --green: #2d5a3b;
+            --blue: #2c5f8a; --purple: #6a3d99; --input-bg: #2d2d2d; --accent: #c9a84c;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: Segoe UI, system-ui, sans-serif;
+            min-height: 100vh; display: flex; justify-content: center;
+            align-items: center; padding: 40px 20px;
+        }
+        .login-container {
+            max-width: 460px; width: 100%; background: var(--panel);
+            border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .login-header {
+            background: linear-gradient(180deg, #2a1a1a 0%, #1a0a0a 100%);
+            padding: 32px; text-align: center; border-bottom: 2px solid var(--gold);
+        }
+        .login-header .scale-icon { font-size: 48px; margin-bottom: 12px; }
+        .login-header h1 { font-family: Times New Roman, serif; font-size: 20px; color: var(--gold); letter-spacing: 2px; }
+        .login-header .subtitle { font-size: 12px; color: #999; margin-top: 4px; }
+        .login-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 16px; }
+        .login-body label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+        .login-body input {
+            background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+            padding: 12px 16px; color: #e0e0e0; font-size: 15px; font-family: inherit; width: 100%;
+        }
+        .login-body input:focus { outline: none; border-color: var(--gold); }
+        .btn-login {
+            background: var(--gold); color: #1a1a1a; border: none; border-radius: 6px;
+            padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; width: 100%;
+        }
+        .btn-login:hover { background: #d4b35a; }
+        .btn-login:disabled { background: #555; color: #999; cursor: not-allowed; }
+        .login-error { color: #e74c3c; font-size: 13px; text-align: center; min-height: 20px; }
+        .login-footer { text-align: center; padding: 0 32px 24px; font-size: 11px; color: #555; }
+        .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+        .status-dot.online { background: #2ecc71; box-shadow: 0 0 6px #2ecc71; }
+        .status-dot.offline { background: #e74c3c; }
+        .status-dot.loading { background: #f39c12; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .container {
+            max-width: 920px; width: 100%; background: var(--panel);
+            border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .header {
+            background: linear-gradient(180deg, #2a1a1a 0%, #1a0a0a 100%);
+            padding: 20px 28px; display: flex; justify-content: space-between;
+            align-items: center; border-bottom: 2px solid var(--gold); flex-wrap: wrap; gap: 12px;
+        }
+        .header-left { display: flex; align-items: center; gap: 14px; }
+        .header-left .scale-icon { font-size: 28px; }
+        .header-left h1 { font-family: Times New Roman, serif; font-size: 18px; color: var(--gold); }
+        .header-right { display: flex; align-items: center; gap: 16px; }
+        .user-info { text-align: right; font-size: 12px; }
+        .user-name { color: var(--accent); font-weight: 600; }
+        .user-role { font-size: 10px; text-transform: uppercase; }
+        .role-admin { color: #e74c3c; } .role-dev { color: #9b59b6; } .role-gs-ca { color: #e67e22; }
+        .role-zgs-ca { color: #f39c12; } .role-sled-ca { color: #3498db; } .role-judge { color: var(--gold); }
+        .btn-admin { background: var(--purple); color: #fff; border: none; border-radius: 4px; padding: 8px 14px; font-size: 11px; font-weight: 600; cursor: pointer; }
+        .btn-admin:hover { background: #7d4ba8; }
+        .btn-logout { background: #4a1a1a; color: #e74c3c; border: 1px solid #5a2a2a; border-radius: 4px; padding: 8px 14px; font-size: 11px; font-weight: 600; cursor: pointer; }
+        .btn-logout:hover { background: #5a1a1a; }
+        .tabs { display: flex; border-bottom: 1px solid var(--border); background: #1c1c1c; overflow-x: auto; }
+        .tab { flex: 1; min-width: fit-content; padding: 14px 12px; text-align: center; cursor: pointer; font-weight: 600; font-size: 12px; color: #888; border-bottom: 3px solid transparent; user-select: none; white-space: nowrap; }
+        .tab:hover { color: #ccc; background: #252525; }
+        .tab.active { color: var(--gold); border-bottom-color: var(--gold); background: var(--panel); }
+        .tab.reject-tab.active { color: #e74c3c; border-bottom-color: #e74c3c; }
+        .tab.verdict-tab.active { color: #5b9bd5; border-bottom-color: #5b9bd5; }
+        .tab-content { display: none; } .tab-content.active { display: block; }
+        .form-body { padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+        .form-row { display: flex; gap: 16px; } .form-row .form-group { flex: 1; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+        .form-group input, .form-group textarea, .form-group select {
+            background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px;
+            padding: 10px 14px; color: #e0e0e0; font-size: 14px; font-family: inherit; resize: vertical;
+        }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--gold); }
+        .form-group textarea { min-height: 100px; }
+        .points-section { border: 1px solid var(--border); border-radius: 8px; padding: 14px; background: #1c1c1c; }
+        .points-section h3 { font-size: 13px; text-transform: uppercase; color: #5b9bd5; margin-bottom: 12px; }
+        .point-item { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+        .point-number { background: #5b9bd5; color: #fff; font-weight: 700; font-size: 12px; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 8px; }
+        .point-item textarea { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; color: #e0e0e0; font-size: 14px; resize: vertical; min-height: 60px; }
+        .btn-remove-point { background: #4a1a1a; color: #e74c3c; border: 1px solid #5a2a2a; border-radius: 4px; width: 30px; height: 30px; cursor: pointer; font-size: 16px; flex-shrink: 0; margin-top: 8px; }
+        .btn-add-point { background: #1a2a3a; color: #5b9bd5; border: 1px dashed #2a4a6a; border-radius: 6px; padding: 10px 16px; cursor: pointer; font-weight: 600; font-size: 13px; width: 100%; margin-top: 6px; }
+        .preset-btns { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+        .preset-btn { background: #1a2a3a; color: #5b9bd5; border: 1px solid #2a4a6a; border-radius: 4px; padding: 4px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+        .btn-row { display: flex; gap: 12px; margin-top: 4px; }
+        .btn { flex: 1; padding: 12px 20px; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn:active { transform: scale(0.97); }
+        .btn-generate { background: var(--red); color: #fff; }
+        .btn-generate:hover { background: #a51f1f; }
+        .btn-reject { background: var(--red-bright); color: #fff; }
+        .btn-reject:hover { background: #c0392b; }
+        .btn-verdict { background: var(--blue); color: #fff; }
+        .btn-verdict:hover { background: #3570a0; }
+        .btn-copy { background: var(--green); color: #fff; }
+        .btn-copy:hover { background: #356b45; }
+        .btn-clear { background: #333; color: #ccc; }
+        .btn-clear:hover { background: #444; }
+        .output-section { border-top: 1px solid var(--border); padding: 20px 32px 28px; }
+        .output-section h2 { font-size: 13px; text-transform: uppercase; color: #777; margin-bottom: 12px; }
+        .output-box { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 20px 24px; font-family: Times New Roman, monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; max-height: 500px; overflow-y: auto; color: #ccc; }
+        .admin-panel { background: #1a0a1a; border: 1px solid var(--purple); border-radius: 8px; padding: 20px; margin: 20px 32px; }
+        .admin-panel h3 { color: #9b59b6; text-transform: uppercase; font-size: 14px; margin-bottom: 16px; }
+        .admin-row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; flex-wrap: wrap; }
+        .admin-row input, .admin-row select { background: var(--input-bg); border: 1px solid var(--border); border-radius: 4px; padding: 8px 12px; color: #e0e0e0; font-size: 13px; flex: 1; min-width: 100px; }
+        .btn-add-user { background: var(--purple); color: #fff; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
+        .btn-add-user:hover { background: #7d4ba8; }
+        .btn-add-user:disabled { background: #555; cursor: not-allowed; }
+        .users-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 12px; }
+        .users-table th { text-align: left; padding: 8px; color: #888; text-transform: uppercase; font-size: 10px; border-bottom: 1px solid var(--border); }
+        .users-table td { padding: 8px; border-bottom: 1px solid #1a1a1a; }
+        .btn-del-user { background: #4a1a1a; color: #e74c3c; border: 1px solid #5a2a2a; border-radius: 3px; padding: 4px 10px; cursor: pointer; font-size: 11px; }
+        .sync-status { font-size: 10px; color: #666; margin-top: 8px; }
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #2d5a3b; color: #fff; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 14px; z-index: 999; transition: transform 0.3s ease; }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+        @media (max-width: 600px) {
+            .form-row { flex-direction: column; } .btn-row { flex-direction: column; }
+            .tabs { flex-wrap: wrap; } .tab { width: 33.33%; }
+            .header { flex-direction: column; } .header-right { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container" id="loginScreen">
+        <div class="login-header">
+            <div class="scale-icon">⚖️</div>
+            <h1>СУД ШТАТА ДРЕЙК</h1>
+            <div class="subtitle">Защищённая система • <span id="serverStatus">проверка...</span></div>
+        </div>
+        <div class="login-body">
+            <div class="form-group"><label>🔑 Логин</label><input type="text" id="loginInput" placeholder="Введите логин..." autocomplete="off"></div>
+            <div class="form-group"><label>🔒 Пароль</label><input type="password" id="passwordInput" placeholder="Введите пароль..." autocomplete="off"></div>
+            <div class="login-error" id="loginError"></div>
+            <button class="btn-login" id="btnLogin" onclick="login()">⚖️ Войти в систему</button>
+        </div>
+        <div class="login-footer">Доступ имеют только сотрудники Суда Штата Дрейк</div>
+    </div>
+
+    <div class="container" id="mainApp" style="display:none;">
+        <div class="header">
+            <div class="header-left"><div class="scale-icon">⚖️</div><h1>О П Р Е Д Е Л Е Н И Е</h1></div>
+            <div class="header-right">
+                <div class="user-info"><div class="user-name" id="displayName">—</div><div class="user-role" id="displayRole">—</div></div>
+                <button class="btn-admin" id="btnAdminPanel" style="display:none;" onclick="toggleAdmin()">👑 Упр. доступом</button>
+                <button class="btn-logout" onclick="logout()">🚪 Выйти</button>
+            </div>
+        </div>
+
+        <div class="admin-panel" id="adminPanel" style="display:none;">
+            <h3>👑 Управление доступом</h3>
+            <div class="admin-row">
+                <input type="text" id="newLogin" placeholder="Логин...">
+                <input type="password" id="newPassword" placeholder="Пароль...">
+                <select id="newRole">
+                    <option value="judge">Судья</option><option value="sled-ca">Следящий ЦА</option>
+                    <option value="zgs-ca">ЗГС ЦА</option><option value="gs-ca">ГС ЦА</option>
+                    <option value="dev">Разраб</option><option value="admin">Админ</option>
+                </select>
+                <button class="btn-add-user" id="btnAddUser" onclick="addUser()">➕ Добавить</button>
+            </div>
+            <button class="btn-add-user" style="background:#2c5f8a;margin-bottom:10px;" onclick="syncUsers()">🔄 Синхронизировать</button>
+            <table class="users-table"><thead><tr><th>Логин</th><th>Роль</th><th>Добавлен</th><th>Кем</th><th>Действие</th></tr></thead><tbody id="usersTableBody"></tbody></table>
+            <div class="sync-status" id="syncStatus"></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('accept')">✅ Принятие иска</div>
+            <div class="tab reject-tab" onclick="switchTab('reject')">❌ Отказ в принятии</div>
+            <div class="tab verdict-tab" onclick="switchTab('verdict')">⚡ Вынесение приговора</div>
+        </div>
+
+        <div class="tab-content active" id="tab-accept">
+            <div class="form-body">
+                <div class="form-row"><div class="form-group"><label>👤 Истец</label><input type="text" id="plaintiff" placeholder="Имя Фамилия"></div><div class="form-group"><label>👤 Ответчик</label><input type="text" id="defendant" placeholder="Имя Фамилия"></div></div>
+                <div class="form-group"><label>📝 Суть иска</label><textarea id="claims" placeholder="Текст..."></textarea></div>
+                <div class="form-row"><div class="form-group"><label>📅 Дата подачи</label><input type="text" id="filingDate" placeholder="16 мая"></div><div class="form-group"><label>⏰ Время подачи</label><input type="text" id="filingTime" placeholder="23:23"></div></div>
+                <div class="form-group"><label>📅 Дата определения</label><input type="text" id="decisionDate" placeholder="17.05.2026"></div>
+                <div class="btn-row"><button class="btn btn-generate" onclick="generateAccept()">📝 Сгенерировать</button><button class="btn btn-copy" onclick="copyResult()">📋 Скопировать</button><button class="btn btn-clear" onclick="clearAccept()">🗑️ Очистить</button></div>
+            </div>
+        </div>
+
+        <div class="tab-content reject-content" id="tab-reject">
+            <div class="form-body">
+                <div class="form-group"><label>👤 Истец</label><input type="text" id="rejPlaintiff" placeholder="Имя Фамилия"></div>
+                <div class="form-group"><label>❌ Причина отказа</label><select id="rejReason" onchange="onReasonChange()"><option value="">— Выберите —</option><option value="Нарушение формы подачи искового заявления.">Нарушение формы</option><option value="Не приложены доказательства.">Нет доказательств</option><option value="Исковое заявление не относится к подсудности Суда штата Дрейк.">Не подсудно</option><option value="custom">✏️ Своя причина...</option></select></div>
+                <div class="form-group" id="customReasonGroup" style="display:none;"><label>✏️ Причина</label><textarea id="rejCustomReason"></textarea></div>
+                <div class="form-group"><label>📅 Дата</label><input type="text" id="rejDecisionDate" placeholder="17.05.2026"></div>
+                <div class="btn-row"><button class="btn btn-reject" onclick="generateReject()">📝 Сгенерировать</button><button class="btn btn-copy" onclick="copyResult()">📋 Скопировать</button><button class="btn btn-clear" onclick="clearReject()">🗑️ Очистить</button></div>
+            </div>
+        </div>
+
+        <div class="tab-content verdict-content" id="tab-verdict">
+            <div class="form-body">
+                <div class="points-section"><h3>📋 УСТАНОВИЛ</h3><div id="establishedPoints"><div class="point-item"><div class="point-number">1</div><textarea></textarea><button class="btn-remove-point" onclick="removePoint(this)">×</button></div></div><button class="btn-add-point" onclick="addPoint('establishedPoints')">➕ Добавить</button></div>
+                <div class="points-section"><h3>⚡ ОПРЕДЕЛИЛ</h3><div id="decidedPoints"><div class="point-item"><div class="point-number">1</div><textarea></textarea><button class="btn-remove-point" onclick="removePoint(this)">×</button></div></div><button class="btn-add-point" onclick="addPoint('decidedPoints')">➕ Добавить</button></div>
+                <div class="form-group"><label>📅 Дата</label><input type="text" id="verdictDate" placeholder="17.05.2026"></div>
+                <div class="btn-row"><button class="btn btn-verdict" onclick="generateVerdict()">📝 Сгенерировать</button><button class="btn btn-copy" onclick="copyResult()">📋 Скопировать</button><button class="btn btn-clear" onclick="clearVerdict()">🗑️ Очистить</button></div>
+            </div>
+        </div>
+
+        <div class="output-section"><h2>📄 Результат (BB-код)</h2><div class="output-box" id="output">Нажмите Сгенерировать...</div></div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxIlYA1VleiLEVwdKxKK5mcIInSLC-If3w1URarUPoxbEXtezjJgkj9QNK2Y2QU3PwD/exec';
+        const JUDGE_NAME = "Ричард Торенно"; const JUDGE_SIGNATURE = "R.Torenno";
+        const COURT_NAME = "СУД ШТАТА ДРЕЙК"; const COURT_ADDRESS = "4212 Конститьюшонал Авеню, Куинс, Сан-Фиерро, Дрейк";
+        const ROLE_NAMES = {'admin':'Админ','dev':'Разраб','gs-ca':'ГС ЦА','zgs-ca':'ЗГС ЦА','sled-ca':'Следящий ЦА','judge':'Судья'};
+        const ROLE_HIERARCHY = {'admin':100,'dev':90,'gs-ca':80,'zgs-ca':70,'sled-ca':60,'judge':50};
+
+        let currentUser = null, currentTab = 'accept', serverOnline = false;
+
+        async function checkServer() {
+            const el = document.getElementById('serverStatus');
+            el.innerHTML = '<span class="status-dot loading"></span> проверка...';
+            try { const r = await fetch(API_URL); await r.json(); serverOnline = true; el.innerHTML = '<span class="status-dot online"></span> Сервер онлайн'; }
+            catch(e) { serverOnline = false; el.innerHTML = '<span class="status-dot offline"></span> Сервер офлайн'; }
+        }
+
+        async function login() {
+            const login = document.getElementById('loginInput').value.trim();
+            const pass = document.getElementById('passwordInput').value.trim();
+            const err = document.getElementById('loginError'), btn = document.getElementById('btnLogin');
+            if (!login || !pass) { err.textContent = 'Введите логин и пароль'; return; }
+            btn.disabled = true; btn.textContent = '⏳ Вход...'; err.textContent = '';
+            if (serverOnline) {
+                try {
+                    const r = await fetch(API_URL + '?action=login&login=' + encodeURIComponent(login) + '&password=' + encodeURIComponent(pass));
+                    const d = await r.json();
+                    if (d.success) { currentUser = d.user; localStorage.setItem('drake_session', JSON.stringify({login:d.user.login,role:d.user.role,pass:pass})); showMainApp(); }
+                    else err.textContent = '❌ ' + (d.error || 'Неверный логин/пароль');
+                } catch(e) { err.textContent = '⚠️ Ошибка связи'; }
+            } else {
+                if (login === 'Richard_Torenno' && pass === 'admin123') { currentUser = {login:'Richard_Torenno',role:'admin'}; localStorage.setItem('drake_session', JSON.stringify({login:'Richard_Torenno',role:'admin',pass:'admin123'})); showMainApp(); }
+                else err.textContent = '❌ Сервер офлайн. Только админ локально.';
+            }
+            btn.disabled = false; btn.textContent = '⚖️ Войти в систему';
+        }
+
+        document.getElementById('passwordInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+        document.getElementById('loginInput').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('passwordInput').focus(); });
+
+        function logout() { currentUser = null; localStorage.removeItem('drake_session'); document.getElementById('mainApp').style.display = 'none'; document.getElementById('loginScreen').style.display = ''; document.getElementById('loginInput').value = ''; document.getElementById('passwordInput').value = ''; document.getElementById('loginError').textContent = ''; document.getElementById('adminPanel').style.display = 'none'; }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').style.display = 'none'; document.getElementById('mainApp').style.display = '';
+            document.getElementById('displayName').textContent = (currentUser.login || '').replace(/_/g, ' ');
+            document.getElementById('displayRole').textContent = ROLE_NAMES[currentUser.role] || currentUser.role;
+            document.getElementById('displayRole').className = 'user-role role-' + currentUser.role;
+            document.getElementById('btnAdminPanel').style.display = currentUser.role !== 'judge' ? '' : 'none';
+            if (currentUser.role !== 'judge') syncUsers();
+        }
+
+        function toggleAdmin() { const p = document.getElementById('adminPanel'); p.style.display = p.style.display === 'none' ? 'block' : 'none'; }
+        function canManageRole(r) { return (ROLE_HIERARCHY[currentUser.role] || 0) > (ROLE_HIERARCHY[r] || 0); }
+
+        async function addUser() {
+            const login = document.getElementById('newLogin').value.trim(), pass = document.getElementById('newPassword').value.trim(), role = document.getElementById('newRole').value, btn = document.getElementById('btnAddUser');
+            if (!login || !pass) { showToast('⚠️ Введите логин и пароль', '#8b6d1a'); return; }
+            if (!canManageRole(role)) { showToast('⛔ Недостаточно прав', '#8b1a1a'); return; }
+            const sess = JSON.parse(localStorage.getItem('drake_session') || '{}');
+            const adminPass = sess.pass || '';
+            btn.disabled = true; btn.textContent = '⏳...';
+            if (serverOnline) {
+                try {
+                    const u = API_URL + '?action=addUser&adminLogin=' + encodeURIComponent(currentUser.login) + '&adminPassword=' + encodeURIComponent(adminPass) + '&newLogin=' + encodeURIComponent(login) + '&newPassword=' + encodeURIComponent(pass) + '&newRole=' + encodeURIComponent(role);
+                    const r = await fetch(u); const d = await r.json();
+                    if (d.success) { showToast('✅ ' + login + ' добавлен'); document.getElementById('newLogin').value = ''; document.getElementById('newPassword').value = ''; syncUsers(); }
+                    else showToast('❌ ' + (d.error || 'Ошибка'), '#8b1a1a');
+                } catch(e) { showToast('⚠️ Ошибка связи', '#8b6d1a'); }
+            } else showToast('⚠️ Сервер офлайн', '#8b6d1a');
+            btn.disabled = false; btn.textContent = '➕ Добавить';
+        }
+
+        async function deleteUser(login) {
+            if (login === currentUser.login) { showToast('⚠️ Нельзя удалить себя', '#8b6d1a'); return; }
+            if (login === 'Richard_Torenno') { showToast('⛔ Нельзя удалить создателя', '#8b1a1a'); return; }
+            if (!confirm('Удалить ' + login + '?')) return;
+            const sess = JSON.parse(localStorage.getItem('drake_session') || '{}');
+            const adminPass = sess.pass || '';
+            if (serverOnline) {
+                try {
+                    const r = await fetch(API_URL + '?action=deleteUser&adminLogin=' + encodeURIComponent(currentUser.login) + '&adminPassword=' + encodeURIComponent(adminPass) + '&userToDelete=' + encodeURIComponent(login));
+                    const d = await r.json();
+                    if (d.success) { showToast('🗑️ Удалён'); syncUsers(); }
+                    else showToast('❌ ' + (d.error || 'Ошибка'), '#8b1a1a');
+                } catch(e) { showToast('⚠️ Ошибка связи', '#8b6d1a'); }
+            }
+        }
+
+        async function syncUsers() {
+            if (!serverOnline || !currentUser || currentUser.role === 'judge') return;
+            document.getElementById('syncStatus').textContent = 'Синхронизация...';
+            try {
+                const r = await fetch(API_URL + '?action=getUsers');
+                const d = await r.json();
+                if (d.users) {
+                    const tbody = document.getElementById('usersTableBody'); tbody.innerHTML = '';
+                    for (let login in d.users) { const u = d.users[login]; const canDel = canManageRole(u.role) && login !== currentUser.login && login !== 'Richard_Torenno'; tbody.innerHTML += `<tr><td>${login.replace(/_/g,' ')}</td><td>${ROLE_NAMES[u.role]||u.role}</td><td>${u.added||'—'}</td><td>${u.addedBy||'—'}</td><td>${canDel?`<button class="btn-del-user" onclick="deleteUser('${login}')">✕</button>`:'🔒'}</td></tr>`; }
+                    document.getElementById('syncStatus').textContent = '✅ Синхронизировано: ' + Object.keys(d.users).length + ' чел.';
+                }
+            } catch(e) { document.getElementById('syncStatus').textContent = '⚠️ Ошибка'; }
+        }
+
+        function switchTab(t) { currentTab = t; document.querySelectorAll('.tab').forEach(x => x.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(x => x.classList.remove('active')); if (t==='accept'){document.querySelector('.tab:nth-child(1)').classList.add('active');document.getElementById('tab-accept').classList.add('active')}else if(t==='reject'){document.querySelector('.tab:nth-child(2)').classList.add('active');document.getElementById('tab-reject').classList.add('active')}else{document.querySelector('.tab:nth-child(3)').classList.add('active');document.getElementById('tab-verdict').classList.add('active')} }
+        function onReasonChange() { document.getElementById('customReasonGroup').style.display = document.getElementById('rejReason').value === 'custom' ? 'flex' : 'none'; }
+        function addPoint(id) { const c = document.getElementById(id); const n = c.querySelectorAll('.point-item').length + 1; const d = document.createElement('div'); d.className = 'point-item'; d.innerHTML = `<div class="point-number">${n}</div><textarea></textarea><button class="btn-remove-point" onclick="removePoint(this)">×</button>`; c.appendChild(d); setTimeout(() => d.querySelector('textarea').focus(), 100); }
+        function removePoint(btn) { const c = btn.closest('.points-section').querySelector('div[id]'); if (c.querySelectorAll('.point-item').length <= 1) { showToast('⚠️ Минимум 1 пункт', '#8b6d1a'); return; } btn.closest('.point-item').remove(); c.querySelectorAll('.point-item').forEach((p, i) => p.querySelector('.point-number').textContent = i + 1); }
+        function getPoints(id) { return Array.from(document.getElementById(id).querySelectorAll('textarea')).map(t => t.value.trim()).filter(v => v); }
+
+        function generateAccept() {
+            const now = new Date();
+            const p = document.getElementById('plaintiff').value.trim() || 'Имя Фамилия', d = document.getElementById('defendant').value.trim() || 'Имя Фамилия', c = document.getElementById('claims').value.trim() || 'Суть иска...', fd = document.getElementById('filingDate').value.trim() || now.toLocaleDateString('ru-RU',{day:'numeric',month:'long'}), ft = document.getElementById('filingTime').value.trim() || now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}), dd = document.getElementById('decisionDate').value.trim() || now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+            document.getElementById('output').textContent = `[CENTER][FONT=times new roman][IMG width=289px alt=i10u2fI.png]https://i.imgur.com/EaAwOzi.png[/IMG]\n\n[B]${COURT_NAME}[/B]\n${COURT_ADDRESS}.[/FONT]\n\n[IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG]\n\n[FONT=times new roman][B][SIZE=5]О П Р Е Д Е Л Е Н И Е[/SIZE]\nо принятии искового заявления[/B]\nСудья штата Дрейк ${JUDGE_NAME} рассмотрев вопрос о принятии к производству искового заявления гражданина ${p} против ${d}\n\n[B][SIZE=5]У С Т А Н О В И Л[/SIZE][/B][/FONT]\n[/CENTER]\n[FONT=times new roman]1. Поступившее исковое обращение от ${fd} ${ft} от гражданина ${p}, в котором он утверждает, что ${c}[/FONT]\n\n[CENTER][FONT=times new roman][B][SIZE=5]О П Р Е Д Е Л И Л[/SIZE][/B][/FONT]\n[/CENTER]\n[FONT=times new roman]1. Принять исковое обращение гражданина [FONT=times new roman]${p}[/FONT].\n2. Назначить судебное разбирательство.\n3. Обязать ${d} предоставить объяснения в течение 24 часов.\n4. Разъяснить ответственность по Статье 27.1 УК Штата Дрейк.\n5. Направить копию сторонам.[/FONT]\n\n[IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG]\n[CENTER][/CENTER]\n[RIGHT][FONT=times new roman]Судья штата Дрейк\n${JUDGE_NAME}\nДата:${dd}\nПодпись:${JUDGE_SIGNATURE}[/FONT][/RIGHT]`;
+        }
+
+        function generateReject() {
+            const now = new Date();
+            const p = document.getElementById('rejPlaintiff').value.trim() || 'Имя Фамилия', r = document.getElementById('rejReason').value === 'custom' ? (document.getElementById('rejCustomReason').value.trim() || 'Причина') : (document.getElementById('rejReason').value || 'Причина'), dd = document.getElementById('rejDecisionDate').value.trim() || now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+            document.getElementById('output').textContent = `[CENTER][FONT=times new roman][IMG width=289px alt=i10u2fI.png]https://i.imgur.com/EaAwOzi.png[/IMG]\n\n[B]${COURT_NAME}[/B]\n${COURT_ADDRESS}.[/FONT]\n\n[IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG]\n\n[FONT=times new roman][B][SIZE=5]О П Р Е Д Е Л Е Н И Е\nоб отказе в принятии искового заявления[/SIZE][/B]\nСудья штата Дрейк ${JUDGE_NAME} рассмотрев вопрос о принятии к производству искового заявления.\n\n[B][SIZE=5]У С Т А Н О В И Л[/SIZE][/B]\n[SIZE=4]Суд установил нарушение.\n[SPOILER=Причина отказа]${r}[/SPOILER][/SIZE]\n\n[B][SIZE=5]О П Р Е Д Е Л И Л[/SIZE][/B][/FONT][/CENTER]\n[FONT=times new roman][SIZE=4]1. В принятии искового заявления гражданина ${p} отказать.\n2. Обжалование в течении 72 часов.[/SIZE][/FONT]\n\n[CENTER][IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG][/CENTER]\n[RIGHT][FONT=times new roman]Судья штата Дрейк\n${JUDGE_NAME}\nДата:${dd}\nПодпись:${JUDGE_SIGNATURE}[/FONT][/RIGHT]`;
+        }
+
+        function generateVerdict() {
+            const now = new Date();
+            const ep = getPoints('establishedPoints'), dp = getPoints('decidedPoints'), vd = document.getElementById('verdictDate').value.trim() || now.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'});
+            document.getElementById('output').textContent = `[CENTER][FONT=times new roman][IMG width=289px alt=i10u2fI.png]https://i.imgur.com/EaAwOzi.png[/IMG]\n\n[B]${COURT_NAME}[/B]\n${COURT_ADDRESS}.[/FONT]\n\n[IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG]\n\n[FONT=times new roman][B][SIZE=5]П Р И Г О В О Р[/SIZE][/B][/FONT]\n[/CENTER]\n[FONT=times new roman]Судья штата Дрейк ${JUDGE_NAME}, рассмотрев материалы дела,\n\n[CENTER][FONT=times new roman][B][SIZE=5]У С Т А Н О В И Л[/SIZE][/B][/FONT][/CENTER]\n[FONT=times new roman]${ep.length ? ep.map((p,i) => `${i+1}. ${p}`).join('\n') : '1. ...'}[/FONT]\n\n[CENTER][FONT=times new roman][B][SIZE=5]О П Р Е Д Е Л И Л[/SIZE][/B][/FONT][/CENTER]\n[FONT=times new roman]${dp.length ? dp.map((p,i) => `${i+1}. ${p}`).join('\n') : '1. ...'}[/FONT]\n\n[CENTER][IMG alt=nZ15jOZ.png]https://i.imgur.com/nZ15jOZ.png[/IMG][/CENTER]\n[RIGHT][FONT=times new roman]Судья штата Дрейк\n${JUDGE_NAME}\nДата:${vd}\nПодпись:${JUDGE_SIGNATURE}[/FONT][/RIGHT]`;
+        }
+
+        function copyResult() { const t = document.getElementById('output').textContent; if (t.includes('Нажмите')) { showToast('⚠️ Сначала сгенерируйте', '#8b6d1a'); return; } navigator.clipboard ? navigator.clipboard.writeText(t).then(() => showToast('✅ Скопировано')) : (() => { const a = document.createElement('textarea'); a.value = t; a.style.cssText = 'position:fixed;left:-9999px'; document.body.appendChild(a); a.select(); document.execCommand('copy'); showToast('✅ Скопировано'); document.body.removeChild(a); })(); }
+        function clearAccept() { ['plaintiff','defendant','claims','filingDate','filingTime','decisionDate'].forEach(id => document.getElementById(id).value = ''); document.getElementById('output').textContent = 'Нажмите Сгенерировать...'; }
+        function clearReject() { ['rejPlaintiff','rejCustomReason','rejDecisionDate'].forEach(id => document.getElementById(id).value = ''); document.getElementById('rejReason').selectedIndex = 0; document.getElementById('customReasonGroup').style.display = 'none'; document.getElementById('output').textContent = 'Нажмите Сгенерировать...'; }
+        function clearVerdict() { ['establishedPoints','decidedPoints'].forEach(id => { const c = document.getElementById(id); c.querySelectorAll('.point-item').forEach((p,i) => { if(i===0) p.querySelector('textarea').value=''; else p.remove(); }); }); document.getElementById('verdictDate').value=''; document.getElementById('output').textContent='Нажмите Сгенерировать...'; }
+        function showToast(msg, bg = '#2d5a3b') { const t = document.getElementById('toast'); t.textContent = msg; t.style.background = bg; t.classList.add('show'); clearTimeout(t._timeout); t._timeout = setTimeout(() => t.classList.remove('show'), 2500); }
+
+        document.addEventListener('keydown', function(e) { if (!currentUser) return; if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); currentTab==='accept'?generateAccept():currentTab==='reject'?generateReject():generateVerdict(); } if (e.ctrlKey && e.shiftKey && e.key === 'C') { e.preventDefault(); copyResult(); } if (e.ctrlKey && e.key === '1') { e.preventDefault(); switchTab('accept'); } if (e.ctrlKey && e.key === '2') { e.preventDefault(); switchTab('reject'); } if (e.ctrlKey && e.key === '3') { e.preventDefault(); switchTab('verdict'); } });
+
+        (async function() { await checkServer(); try { const s = JSON.parse(localStorage.getItem('drake_session')); if (s && serverOnline) { const r = await fetch(API_URL + '?action=login&login=' + encodeURIComponent(s.login) + '&password=' + encodeURIComponent(s.pass||'')); const d = await r.json(); if (d.success) { currentUser = d.user; showMainApp(); } } } catch(e) {} })();
+    </script>
+</body>
+</html>
